@@ -73,59 +73,33 @@ OpenTTD Heightmap Generator is a modern, high-precision web tool designed to gen
 
 #### 1. Water Level Cutoff
 
-* **Function**: Determines the elevation altitude below which pixels are recognized as sea/water in the heightmap.
-* **Recommended Setting**: `0m` (default), fine-tune based on shorelines.
-* **How to Use**:
-* **Land flooded**: Move slider left to lower the cutoff (e.g., `-5m` to `-10m`).
-* **Sea turning into land**: Move slider right to raise the cutoff (e.g., `5m` to `10m`).
-
-
+* Determines the elevation altitude below which pixels are recognized as sea/water in the heightmap. `0m` (default), fine-tune based on shorelines.
 
 #### 2. Max Elevation
 
-* **Function**: Maps the highest real-world mountain peak in your selection to OpenTTD's maximum height steps (up to 256 height levels).
-* **Recommended Setting**: `64 - 128` for flat/manageable maps, `192 - 256` for extreme mountainous terrain.
-* **How to Use**:
-* **For easy track laying**: Set lower values (`64` or `96`) to keep slopes gentle.
-* **For mountainous challenges**: Set higher values (`256`) to create steep cliffs and challenging alpine passes.
-
-
+*  Maps the highest real-world mountain peak in your selection to OpenTTD's maximum height steps (default is 2000m).
 
 #### 3. Terrain Smoothing (Box Filtering)
 
-* **Function**: Applies a smoothing algorithm to raw elevation tiles to soften jagged noise and sheer cliffs.
-* **Recommended Setting**: `Low (Level 1)` or `Medium (Level 2)`.
-* **How to Use**:
-* **Off**: Retains 100% raw topographic detail, but produces numerous 1x1 micro-cliffs.
-* **Low / Medium**: Converts sharp mountain steps into smooth slope gradients. Highly recommended for beginners.
-
-
+*  Applies a smoothing algorithm to raw elevation tiles to soften jagged noise and sheer cliffs.(default is 2x).
 
 #### 4. Force Lift Sea Level & Below Pixels
 
-* **Function**: Forcibly elevates land areas that are at or below sea level by a specified offset, preventing them from being submerged.
-* **Recommended Setting**: **Checked** when mapping low-lying coastal regions (e.g., Netherlands, Venice).
-* **How to Use**: Enable this to lift sub-sea-level land `1–2` tiles above water so towns and roads can spawn normally.
+*  Forcibly elevates land areas that are at or below sea level by a specified offset, preventing them from being submerged. **Checked** when mapping low-lying coastal regions (e.g., Netherlands, Venice).
 
 #### 5. Force Lift Low-Elevation Land
 
-* **Function**: Ensures all land tiles near the coastline maintain a distinct minimum height step above water to avoid rendering artifacts.
-* **Recommended Setting**: **Checked** (Offset `1` tile) for maps with complex coastlines.
-* **How to Use**: Gives coastal plains a clean, raised embankment above the sea, simplifying seaport and railway construction.
+*  Ensures all land tiles near the coastline maintain a distinct minimum height step above water to avoid rendering artifacts. 
 
 #### 6. Inland Lake Detection & Infill
 
-* **Function**: Uses a flood-fill algorithm to separate ocean coastal water from inland below-sea-level basins, automatically filling dry interior depressions.
-* **Recommended Setting**: **Checked** for inland mountain maps; **Unchecked** if you want real-world lakes (e.g., Great Lakes) to generate as water.
-* **How to Use**:
-* **Checked**: Prevents deep inland valleys from accidentally turning into giant dry ocean craters.
-* **Unchecked**: Keeps real inland lakes flooded as playable water bodies.
+* Uses a flood-fill algorithm to separate ocean coastal water from inland below-sea-level basins, automatically filling dry interior depressions.
 
-
+(You could check them on https://github.com/bunburya/bother)
 
 #### 7. Population Scale
 
-* **Function**: Multiplies real-world OpenStreetMap population figures by the specified scale factor to convert them into balanced starting populations for OpenTTD.
+*  Multiplies real-world OpenStreetMap population figures by the specified scale factor to convert them into balanced starting populations for OpenTTD.
 * **Calculation Formula**:
 
 $$\text{In-Game Population} = \text{Real OSM Population} \times \text{Population Scale}$$
@@ -140,7 +114,7 @@ $$\text{In-Game Population} = \text{Real OSM Population} \times \text{Population
 
 #### 8. Town Filtering Threshold
 
-* **Function**: Filters out small settlements or low-priority nodes based on population size or administrative rank to prevent map clutter.
+*  Filters out small settlements or low-priority nodes based on population size or administrative rank to prevent map clutter.
 * **Threshold Values (`0`, `0.5`, `1`)**:
 * **Set to `1` (Keep All)**: Retains 100% of OSM nodes in the selection (including small villages, tiny hamlets, and farmsteads).
 * **Set to `0.5` (Balanced Clean-up)**: Automatically purges minor hamlets, keeping medium-to-large towns and main cities intact.
