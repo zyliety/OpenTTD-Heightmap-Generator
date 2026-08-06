@@ -1,6 +1,6 @@
 # OpenTTD-Heightmap-Generator
 
-![2026-08-05 230354.png](https://files.seeusercontent.com/2026/08/06/K4zi/2026-08-05-230354.png)
+![2026-08-06 115833.png](https://files.seeusercontent.com/2026/08/06/lg7X/2026-08-06-115833.png)
 
 🌟 Project Overview
 OpenTTD Heightmap Generator is a modern, high-precision web tool designed to generate realistic 8-bit heightmaps and extract real-world town data for OpenTTD.Powered by OpenStreetMap (OSM) vector data and Terrarium DEM global elevation tiles, it enables players to select any geographic region on Earth, fine-tune terrain smoothing and water levels, and export game-ready PNG heightmaps along with structured JSON town configurations in one click.
