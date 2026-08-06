@@ -29,7 +29,7 @@ OpenTTD Heightmap Generator is a modern, high-precision web tool designed to gen
 #### 3. 🏔️ DEM Elevation Processing & Terrain Smoothing
 
 * **Bilinear Interpolation Sampling**: Smoothly resamples elevation tiles to prevent pixelation artifacts in scaled maps.
-* **Precision Sea Level & Altitude Mapping**: Customize sea level cutoffs and maximum mountain elevations (supporting OpenTTD's maximum 256 height levels).
+* **Precision Sea Level & Altitude Mapping**: Customize sea level cutoffs and maximum mountain elevations.
 * **Multi-pass Box Filter Smoothing**: Flatten jagged mountain cliffs into gentler slopes that are ideal for building railway networks and roads.
 * **Inland Lake Detection & Infill**: Built-in flood-fill algorithm automatically detects inland basins below sea level and fills them to prevent unnatural dry craters.
 * **Custom Low-Elevation Offset**: Option to forcibly raise coastal or sub-sea-level land to specified target elevations.
@@ -55,7 +55,7 @@ OpenTTD Heightmap Generator is a modern, high-precision web tool designed to gen
 #### 6. 🌐 Intuitive Interaction & Multi-language Support (i18n & Tooltips)
 
 * **Native i18n**: Seamless switching between **English (EN)**, **Chinese (ZH)**, and **Japanese (JA)**.
-* **Hover Parameter Documentation**: Hovering over any parameter section displays an interactive tooltip explaining its usage based on OpenTTD & RoadTycoon specifications.
+* **Hover Parameter Documentation**: Hovering over any parameter section displays an interactive tooltip explaining its usage based on OpenTTD specifications.
 * **One-Click Reset Button**: Easily revert all sliders, checkboxes, and selections back to default baseline values.
 
 ---
