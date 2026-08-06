@@ -7,9 +7,9 @@ OpenTTD Heightmap Generator is a modern, high-precision web tool designed to gen
 
 ### Note:
 
-* **Do not select an area that is too large. It is recommended to keep both the length and width under 8192 pixels, otherwise the export speed will be significantly affected.
+* Do not select an area that is too large. It is recommended to keep both the length and width under 8192 pixels, otherwise the export speed will be significantly affected.
 
-* **Do not set the Town Filter Threshold parameter too high, as it may cause town data fetching to fail.
+* Do not set the Town Filter Threshold parameter too high, as it may cause town data fetching to fail.
 
 ### ✨ Key Features & Highlights
 
