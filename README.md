@@ -132,9 +132,9 @@ $$\text{In-Game Population} = \text{Real OSM Population} \times \text{Population
 
 
 * **Examples**:
-* **Example 1 (Scale = `0.01` / 1%)**: Real metropolis with **1,000,000** residents becomes $1,000,000 \times 0.01 = 10,000$ in-game population; town of **50,000** becomes $500$. *(Recommended baseline)*
-* **Example 2 (Scale = `0.05` / 5%)**: A city with **1,000,000** residents yields $50,000$ in-game population. *(Ideal for high-density passenger network challenges)*
-* **Example 3 (Scale = `0.001` / 0.1%)**: A city of **1,000,000** becomes $1,000$ residents; town of **50,000** shrinks to $50$. *(Great for lightweight freight-focused maps)*
+* **Example 1 (Scale = `0.01` / 1%)**: Real metropolis with **1,000,000** residents becomes $1,000,000 \times 0.01 = 10,000$ in-game population; town of **50,000** becomes $500$.
+* **Example 2 (Scale = `0.05` / 5%)**: A city with **1,000,000** residents yields $50,000$ in-game population.
+* **Example 3 (Scale = `0.001` / 0.1%)**: A city of **1,000,000** becomes $1,000$ residents; town of **50,000** shrinks to $50$.
 
 
 
