@@ -1,0 +1,1669 @@
+<!DOCTYPE html>
+<html lang="en" class="theme-day">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OpenTTD Heightmap Generator Final Edition</title>
+  
+  <!-- Map Emoji Favicon -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🗺️</text></svg>">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+  <!-- JSZip Library for ZIP packaging -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+  <style>
+    :root {
+      /* Apple Maps Dark Mode Glassmorphism Theme */
+      --bg-base: #000000;
+      --bg-surface: rgba(28, 28, 30, 0.82);
+      --bg-card: rgba(44, 44, 46, 0.65);
+      --border-subtle: rgba(255, 255, 255, 0.14);
+      
+      --accent-gradient: linear-gradient(135deg, #0A84FF 0%, #0062D2 100%);
+      --accent-primary: #0A84FF;
+      --accent-glow: rgba(10, 132, 255, 0.3);
+      
+      --text-primary: #F5F5F7;
+      --text-secondary: #8E8E93;
+      --danger-color: #FF453A;
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 20px;
+      --shadow-win: 0 20px 50px rgba(0, 0, 0, 0.6);
+    }
+
+    :root.theme-day {
+      /* Apple Maps Light Mode Glassmorphism Theme */
+      --bg-base: #F2F2F7;
+      --bg-surface: rgba(255, 255, 255, 0.88);
+      --bg-card: rgba(242, 242, 247, 0.75);
+      --border-subtle: rgba(0, 0, 0, 0.08);
+      
+      --accent-gradient: linear-gradient(135deg, #007AFF 0%, #0051A8 100%);
+      --accent-primary: #007AFF;
+      --accent-glow: rgba(0, 122, 255, 0.2);
+      
+      --text-primary: #1C1C1E;
+      --text-secondary: #8E8E93;
+      --danger-color: #FF3B30;
+      --shadow-win: 0 20px 40px rgba(0, 0, 0, 0.12);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg-base);
+      color: var(--text-primary);
+      height: 100vh;
+      width: 100vw;
+      overflow: hidden;
+      position: relative;
+    }
+
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--text-secondary); border-radius: 3px; opacity: 0.5; }
+
+    #map { width: 100%; height: 100%; z-index: 1; }
+
+    /* Fixed Top-Right Container for Theme & Language Controls */
+    .top-right-controls {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 10px;
+    }
+
+    /* Fixed Top-Right Theme Switcher UI & Fixed Language Switcher UI */
+    .theme-toggle-btn, .lang-select-fixed {
+      background: var(--bg-surface);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-primary);
+      height: 38px;
+      padding: 0 14px;
+      border-radius: 19px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      box-shadow: var(--shadow-win);
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      white-space: nowrap;
+      user-select: none;
+      outline: none;
+    }
+    
+    .lang-select-fixed {
+      appearance: none;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      padding-right: 30px;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238E8E93' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+    }
+
+    .theme-toggle-btn:hover, .lang-select-fixed:hover {
+      border-color: var(--accent-primary);
+      background: var(--bg-card);
+      transform: translateY(-1px);
+    }
+    .theme-toggle-btn .toggle-icon { font-size: 0.95rem; }
+    .lang-select-fixed option {
+      background: var(--bg-base);
+      color: var(--text-primary);
+    }
+
+    /* Fixed Bottom-Right GitHub Help Icon Button */
+    .help-btn-fixed {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      z-index: 1000;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: var(--bg-surface);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      font-weight: 700;
+      box-shadow: var(--shadow-win);
+      text-decoration: none;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      user-select: none;
+      outline: none;
+    }
+
+    .help-btn-fixed:hover {
+      border-color: var(--accent-primary);
+      background: var(--bg-card);
+      color: var(--accent-primary);
+      transform: translateY(-2px) scale(1.05);
+    }
+
+    /* Apple Maps Style Floating Draggable Panel */
+    #floating-window {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      width: 410px;
+      max-width: calc(100vw - 40px);
+      max-height: calc(100vh - 40px);
+      background-color: var(--bg-surface);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      z-index: 1000;
+      box-shadow: var(--shadow-win);
+      display: flex;
+      flex-direction: column;
+      transition: background-color 0.3s, border-color 0.3s;
+    }
+
+    /* Apple Sheet Handle Bar */
+    .window-handle {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      padding-top: 8px;
+      cursor: move;
+    }
+    .window-handle span {
+      width: 36px;
+      height: 4px;
+      background: var(--text-secondary);
+      border-radius: 2px;
+      opacity: 0.4;
+    }
+
+    .window-header {
+      padding: 10px 18px 14px 18px;
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      cursor: move;
+      user-select: none;
+    }
+
+    .brand { display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1; }
+    
+    /* Map Emoji UI Brand Icon */
+    .brand-icon {
+      width: 36px;
+      height: 36px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      flex-shrink: 0;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+
+    .brand-text { display: flex; flex-direction: column; min-width: 0; }
+    .brand-title { 
+      font-size: 0.92rem; 
+      font-weight: 700; 
+      letter-spacing: -0.2px; 
+      white-space: nowrap; 
+      overflow: hidden; 
+      text-overflow: ellipsis; 
+      line-height: 1.25;
+    }
+    .brand-subtitle { 
+      font-size: 0.7rem; 
+      color: var(--text-secondary); 
+      white-space: nowrap; 
+      line-height: 1.2;
+    }
+
+    .header-actions { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
+
+    /* Reset Button Styling */
+    .reset-btn {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-primary);
+      height: 32px;
+      border-radius: var(--radius-sm);
+      padding: 0 10px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      cursor: pointer;
+      outline: none;
+      transition: all 0.2s;
+      white-space: nowrap;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .reset-btn:hover { 
+      border-color: var(--accent-primary); 
+      color: var(--accent-primary);
+    }
+    .reset-btn:active {
+      transform: scale(0.95);
+    }
+
+    .window-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .card-section {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 14px;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      position: relative;
+    }
+
+    .section-title {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-secondary);
+      margin-bottom: 12px;
+      white-space: nowrap;
+    }
+
+    .form-group { margin-bottom: 12px; position: relative; }
+    .form-group:last-child { margin-bottom: 0; }
+    .form-row { display: flex; gap: 10px; }
+    .form-row > div { flex: 1; }
+
+    .form-label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.8rem;
+      font-weight: 500;
+      margin-bottom: 6px;
+      cursor: help;
+      white-space: nowrap;
+    }
+
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      cursor: pointer;
+      user-select: none;
+      line-height: 1.3;
+    }
+    .checkbox-label input[type="checkbox"] {
+      width: 15px;
+      height: 15px;
+      accent-color: var(--accent-primary);
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    .val-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--accent-primary);
+      background: rgba(10, 132, 255, 0.12);
+      padding: 2px 6px;
+      border-radius: 4px;
+      white-space: nowrap;
+    }
+
+    .custom-param-box {
+      margin-top: 6px;
+      padding-left: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    select, input[type="text"] {
+      width: 100%;
+      padding: 8px 10px;
+      background: var(--bg-base);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-primary);
+      border-radius: var(--radius-sm);
+      font-size: 0.82rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    select:focus, input[type="text"]:focus { border-color: var(--accent-primary); }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 5px;
+      background: var(--border-subtle);
+      border-radius: 3px;
+      outline: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--accent-primary);
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      transition: transform 0.1s;
+    }
+    input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.15); }
+
+    .btn-group { display: flex; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
+
+    .btn {
+      flex: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 14px;
+      background: var(--accent-gradient);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 4px 12px var(--accent-glow);
+      transition: all 0.2s;
+      white-space: nowrap;
+      text-align: center;
+    }
+    .btn:hover:not(:disabled) { filter: brightness(1.1); transform: translateY(-1px); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
+
+    .btn-secondary {
+      background: var(--bg-surface);
+      color: var(--text-primary);
+      border: 1px solid var(--border-subtle);
+      box-shadow: none;
+    }
+    .btn-secondary:hover:not(:disabled) { background: var(--border-subtle); }
+
+    .btn-danger {
+      background: rgba(255, 69, 58, 0.15);
+      color: var(--danger-color);
+      border: 1px solid rgba(255, 69, 58, 0.3);
+      box-shadow: none;
+    }
+    .btn-danger:hover:not(:disabled) { background: rgba(255, 69, 58, 0.25); }
+
+    .btn-success {
+      background: linear-gradient(135deg, #34C759 0%, #248A3D 100%);
+      box-shadow: 0 4px 12px rgba(52, 199, 89, 0.25);
+    }
+
+    .tip-box {
+      font-size: 0.72rem;
+      color: var(--accent-primary);
+      margin-top: 8px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      line-height: 1.3;
+    }
+
+    /* Floating Parameter Info Tooltip Card */
+    #param-tooltip {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      right: 20px;
+      background: var(--bg-surface);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--accent-primary);
+      border-radius: var(--radius-md);
+      padding: 10px 14px;
+      font-size: 0.75rem;
+      color: var(--text-primary);
+      z-index: 1100;
+      box-shadow: var(--shadow-win);
+      display: none;
+      pointer-events: none;
+      animation: fadeIn 0.15s ease;
+    }
+    #param-tooltip .tooltip-title {
+      font-weight: 700;
+      color: var(--accent-primary);
+      margin-bottom: 2px;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Apple Maps Style Bottom Preview Panel */
+    #preview-container {
+      position: absolute;
+      bottom: 70px;
+      right: 20px;
+      background: var(--bg-surface);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 14px;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 240px;
+      box-shadow: var(--shadow-win);
+    }
+    #heightmap-canvas {
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-subtle);
+      width: 212px;
+      height: 212px;
+      background: #000;
+      object-fit: contain;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Map Container -->
+  <div id="map"></div>
+
+  <!-- Top-Right Fixed Controls (Theme Toggle & Language Selector) -->
+  <div class="top-right-controls">
+    <button class="theme-toggle-btn" id="btn-theme-toggle" title="Toggle Theme">
+      <span class="toggle-icon" id="theme-icon">☀️</span>
+      <span data-i18n="themeText">Light</span>
+    </button>
+
+    <select id="lang-select" class="lang-select-fixed" title="Switch Language">
+      <option value="en" selected>EN</option>
+      <option value="zh">中文</option>
+      <option value="ja">日本語</option>
+    </select>
+  </div>
+
+  <!-- Bottom-Right Fixed Help/GitHub Link Button -->
+  <a href="https://github.com/zyliety/OpenTTD-Heightmap-Generator" target="_blank" class="help-btn-fixed" title="Visit GitHub Repository">?</a>
+
+  <!-- Floating Control Panel -->
+  <div id="floating-window">
+    <div class="window-handle"><span></span></div>
+    <div class="window-header" id="window-header">
+      <div class="brand">
+        <!-- Map Emoji UI Logo -->
+        <div class="brand-icon">🗺️</div>
+        <div class="brand-text">
+          <div class="brand-title" data-i18n="brandTitle">OpenTTD Heightmap Generator</div>
+          <div class="brand-subtitle" data-i18n="brandSubtitle">Final Edition</div>
+        </div>
+      </div>
+      <div class="header-actions">
+        <!-- One-Click Reset Parameters Button -->
+        <button id="btn-reset" class="reset-btn" title="Reset all parameters to default values">
+          <span>↺</span>
+          <span data-i18n="btnReset">Reset</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="window-content">
+      
+      <!-- 1. Map Tile Dimensions -->
+      <div class="card-section" data-param-key="dimensions">
+        <div class="section-title" data-i18n="secMapDimensions">1. Map Dimensions (Tile)</div>
+        
+        <div class="form-group form-row">
+          <div>
+            <div class="form-label" data-i18n="lblWidth">Width</div>
+            <select id="map-width">
+              <option value="64">64</option>
+              <option value="128">128</option>
+              <option value="256">256</option>
+              <option value="512" selected>512</option>
+              <option value="1024">1024</option>
+              <option value="2048">2048</option>
+              <option value="4096">4096</option>
+              <option value="8192">8192</option>
+              <option value="16384">16384</option>
+              <option value="32768">32768</option>
+              <option value="65536">65536</option>
+              <option value="131072">131072</option>
+              <option value="262144">262144</option>
+              <option value="524288">524288</option>
+              <option value="1048576">1048576</option>
+            </select>
+          </div>
+          <div>
+            <div class="form-label" data-i18n="lblHeight">Height</div>
+            <select id="map-height">
+              <option value="64">64</option>
+              <option value="128">128</option>
+              <option value="256">256</option>
+              <option value="512" selected>512</option>
+              <option value="1024">1024</option>
+              <option value="2048">2048</option>
+              <option value="4096">4096</option>
+              <option value="8192">8192</option>
+              <option value="16384">16384</option>
+              <option value="32768">32768</option>
+              <option value="65536">65536</option>
+              <option value="131072">131072</option>
+              <option value="262144">262144</option>
+              <option value="524288">524288</option>
+              <option value="1048576">1048576</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="btn-group">
+          <button id="btn-draw" class="btn btn-secondary" data-i18n="btnDraw">Select Fixed Ratio Region</button>
+          <button id="btn-clear" class="btn btn-danger" style="display: none;" data-i18n="btnClear">Clear Selection</button>
+        </div>
+        <div id="drag-tip" class="tip-box" style="display: none;" data-i18n="dragTip">
+          💡 Tip: Hold <kbd style="background:var(--border-subtle); padding:1px 4px; border-radius:3px;">Ctrl</kbd> to drag and move selection box
+        </div>
+      </div>
+
+      <!-- 2. Elevation and Smoothing Settings -->
+      <div class="card-section">
+        <div class="section-title" data-i18n="secElevationSmooth">2. Elevation & Smoothing Parameters</div>
+
+        <div class="form-group" data-param-key="waterLevel">
+          <div class="form-label">
+            <span data-i18n="lblWaterLevel">Sea Level Cutoff</span>
+            <span id="val-water" class="val-badge">0m</span>
+          </div>
+          <input type="range" id="water-level" min="-50" max="200" value="0">
+        </div>
+
+        <div class="form-group" data-param-key="maxElevation">
+          <div class="form-label">
+            <span data-i18n="lblMaxElevation">Max Elevation</span>
+            <span id="val-elevation" class="val-badge">2000m</span>
+          </div>
+          <input type="range" id="max-elevation" min="100" max="8848" value="2000" step="50">
+        </div>
+
+        <div class="form-group" data-param-key="smoothLevel">
+          <div class="form-label">
+            <span data-i18n="lblSmoothLevel">Terrain Smooth Level</span>
+            <span id="val-smooth" class="val-badge">2x</span>
+          </div>
+          <input type="range" id="smooth-level" min="0" max="5" value="2" step="1">
+        </div>
+
+        <!-- Custom Raising Parameters -->
+        <div class="form-group" data-param-key="raiseBelowSea">
+          <label class="checkbox-label">
+            <input type="checkbox" id="raise-below-sea">
+            <span data-i18n="lblRaiseBelowSea">Raising at- or below-sea level pixels</span>
+          </label>
+          <div class="custom-param-box" id="box-below-sea">
+            <div class="form-label">
+              <span data-i18n="lblRaiseBelowVal">Target Elevation:</span>
+              <span id="val-raise-below" class="val-badge">1m</span>
+            </div>
+            <input type="range" id="raise-below-val" min="-10" max="100" value="1">
+          </div>
+        </div>
+
+        <div class="form-group" data-param-key="raiseLowPixels">
+          <label class="checkbox-label">
+            <input type="checkbox" id="raise-low-pixels">
+            <span data-i18n="lblRaiseLowPixels">Raising low (but above sea level) pixels</span>
+          </label>
+          <div class="custom-param-box" id="box-low-pixels">
+            <div class="form-label">
+              <span data-i18n="lblRaiseLowVal">Target Offset Elevation:</span>
+              <span id="val-raise-low" class="val-badge">20m</span>
+            </div>
+            <input type="range" id="raise-low-val" min="1" max="300" value="20">
+          </div>
+        </div>
+
+        <div class="form-group" data-param-key="lakeDetection">
+          <label class="checkbox-label">
+            <input type="checkbox" id="lake-detection" checked>
+            <span data-i18n="lblLakeDetection">Lake detection</span>
+          </label>
+        </div>
+
+        <div class="btn-group">
+          <button id="btn-generate-heightmap" class="btn" disabled data-i18n="btnGenerateHeightmap">Generate Heightmap</button>
+        </div>
+      </div>
+
+      <!-- 3. Town Data Export & ZIP Pack -->
+      <div class="card-section">
+        <div class="section-title" data-i18n="secTownExport">3. Export & Packaging</div>
+
+        <div class="form-group" data-param-key="jsonFormat">
+          <div class="form-label" data-i18n="lblJsonFormat">JSON Export Format</div>
+          <select id="json-format">
+            <option value="roadtycoon" selected data-i18n="optRoadTycoon">OpenTTD Spec (Ratio coords, X/Y swapped, city)</option>
+            <option value="standard" data-i18n="optStandard">Standard GS (Tile int coords x, y, population)</option>
+            <option value="minimal" data-i18n="optMinimal">Minimal Ratio Mode (x, y, name)</option>
+          </select>
+        </div>
+
+        <div class="form-group" data-param-key="popScale">
+          <div class="form-label">
+            <span data-i18n="lblPopScale">Population Scale Ratio</span>
+            <span id="val-scale" class="val-badge">0.05</span>
+          </div>
+          <input type="range" id="pop-scale" min="0.001" max="0.5" value="0.05" step="0.001">
+        </div>
+
+        <div class="form-group" data-param-key="townThreshold">
+          <div class="form-label">
+            <span data-i18n="lblTownThreshold">Town Filter Threshold</span>
+            <span id="val-threshold" class="val-badge">0.5</span>
+          </div>
+          <input type="range" id="town-threshold" min="0" max="1" value="0.5" step="0.05">
+        </div>
+
+        <div class="btn-group">
+          <button id="btn-export-towns" class="btn" disabled data-i18n="btnExportTowns">Export Towns JSON</button>
+        </div>
+
+        <!-- Pack All into ZIP -->
+        <div class="btn-group" style="margin-top: 12px;">
+          <button id="btn-pack-zip" class="btn btn-success" disabled data-i18n="btnPackZip">📦 Pack All to ZIP (Heightmap + Towns)</button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Parameter Detail Tooltip Card -->
+    <div id="param-tooltip">
+      <div class="tooltip-title" id="tooltip-title">Parameter Help</div>
+      <div class="tooltip-desc" id="tooltip-desc">Hover over any parameter to view detailed specifications based on OpenTTD & RoadTycoon docs.</div>
+    </div>
+  </div>
+
+  <!-- Heightmap Preview Panel -->
+  <div id="preview-container" style="display: none;">
+    <div style="font-size:0.75rem; font-weight:700; margin-bottom:8px; color:var(--text-secondary);" data-i18n="secPreviewTitle">Heightmap Preview</div>
+    <canvas id="heightmap-canvas" width="256" height="256"></canvas>
+    <button id="btn-download-png" class="btn" style="margin-top: 10px; width: 100%;" disabled data-i18n="btnDownloadPng">Download Heightmap PNG</button>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    // --- Global Data Cache for ZIP Generation ---
+    let cachedPNGBlob = null;
+    let cachedJSONString = null;
+    let cachedMapWidth = 512;
+    let cachedMapHeight = 512;
+
+    // --- 1. Internationalization (i18n) Engine (EN / ZH / JA) ---
+    const i18n = {
+      en: {
+        brandTitle: "OpenTTD Heightmap Generator",
+        brandSubtitle: "Final Edition",
+        btnReset: "Reset",
+        resetTitle: "Reset all parameters to default values",
+        themeText: "Dark",
+        themeTextLight: "Light",
+        themeToggleTitle: "Toggle Theme",
+        secMapDimensions: "1. Map Dimensions (Tile)",
+        lblWidth: "Width",
+        lblHeight: "Height",
+        btnDraw: "Select Fixed Ratio Region",
+        btnClear: "Clear Selection",
+        dragTip: '💡 Tip: Hold <kbd style="background:var(--border-subtle); padding:1px 4px; border-radius:3px;">Ctrl</kbd> to drag and move selection box',
+        secElevationSmooth: "2. Elevation & Smoothing Parameters",
+        lblWaterLevel: "Sea Level Cutoff",
+        lblMaxElevation: "Max Elevation",
+        lblSmoothLevel: "Terrain Smooth Level",
+        lblRaiseBelowSea: "Raising at- or below-sea level pixels",
+        lblRaiseLowPixels: "Raising low (but above sea level) pixels",
+        lblRaiseBelowVal: "Target Elevation:",
+        lblRaiseLowVal: "Target Offset Elevation:",
+        lblLakeDetection: "Lake detection",
+        btnGenerateHeightmap: "Generate Heightmap",
+        secTownExport: "3. Export & Packaging",
+        lblJsonFormat: "JSON Export Format",
+        optRoadTycoon: "OpenTTD Spec (Ratio coords, X/Y swapped, city)",
+        optStandard: "Standard GS (Tile int coords x, y, population)",
+        optMinimal: "Minimal Ratio Mode (x, y, name)",
+        lblPopScale: "Population Scale Ratio",
+        lblTownThreshold: "Town Filter Threshold",
+        btnExportTowns: "Export Towns JSON",
+        btnPackZip: "📦 Pack All to ZIP (Heightmap + Towns)",
+        secPreviewTitle: "Heightmap Preview",
+        btnDownloadPng: "Download Heightmap PNG",
+        fetchingTowns: "Fetching towns...",
+        errFetchHeightmap: "Failed to fetch terrain data, please check your network connection.",
+        errFetchTowns: "Failed to fetch town nodes, please try again later.",
+        errParseTowns: "Error parsing town data.",
+        packingZip: "Packaging ZIP..."
+      },
+      zh: {
+        brandTitle: "OpenTTD 高度图生成器",
+        brandSubtitle: "最终版",
+        btnReset: "重置",
+        resetTitle: "将所有参数恢复为默认值",
+        themeText: "夜间",
+        themeTextLight: "白天",
+        themeToggleTitle: "切换昼夜模式",
+        secMapDimensions: "1. 地图尺寸 (Tile 瓦片)",
+        lblWidth: "宽度",
+        lblHeight: "高度",
+        btnDraw: "固定比例框选区域",
+        btnClear: "清除选区",
+        dragTip: '💡 提示：按住 <kbd style="background:var(--border-subtle); padding:1px 4px; border-radius:3px;">Ctrl</kbd> 键拖拽可移动选框位置',
+        secElevationSmooth: "2. 高程与平滑参数",
+        lblWaterLevel: "海平面裁切",
+        lblMaxElevation: "最高海拔",
+        lblSmoothLevel: "地形平滑等级",
+        lblRaiseBelowSea: "强制抬升海平面及以下像素",
+        lblRaiseLowPixels: "强制抬升低海拔陆地区域",
+        lblRaiseBelowVal: "目标抬升高度:",
+        lblRaiseLowVal: "低海拔目标相对高度:",
+        lblLakeDetection: "内陆湖泊识别与填平",
+        btnGenerateHeightmap: "生成平滑地形图",
+        secTownExport: "3. 导出与打包",
+        lblJsonFormat: "JSON 导出规范格式",
+        optRoadTycoon: "OpenTTD 官方规范 (比例坐标, x/y对调, city)",
+        optStandard: "Standard GS (瓦片整数坐标 x, y, population)",
+        optMinimal: "极简比例模式 (x, y, name)",
+        lblPopScale: "人口缩放比例",
+        lblTownThreshold: "城镇筛选门槛",
+        btnExportTowns: "导出城镇 JSON 文件",
+        btnPackZip: "📦 打包下载 ZIP (高度图+城镇数据)",
+        secPreviewTitle: "高度图预览",
+        btnDownloadPng: "下载高度图 PNG",
+        fetchingTowns: "抓取城镇中...",
+        errFetchHeightmap: "获取地形数据失败，请检查网络后再试。",
+        errFetchTowns: "获取城镇节点失败，请稍后再试。",
+        errParseTowns: "解析城镇数据出错。",
+        packingZip: "正在打包 ZIP..."
+      },
+      ja: {
+        brandTitle: "OpenTTD ハイトマップジェネレーター",
+        brandSubtitle: "最終版",
+        btnReset: "リセット",
+        resetTitle: "すべてのパラメータを初期値に戻す",
+        themeText: "ダーク",
+        themeTextLight: "ライト",
+        themeToggleTitle: "テーマ切り替え",
+        secMapDimensions: "1. マップサイズ (タイル)",
+        lblWidth: "幅",
+        lblHeight: "高さ",
+        btnDraw: "固定比率の領域選択",
+        btnClear: "選択を解除",
+        dragTip: '💡 ヒント: <kbd style="background:var(--border-subtle); padding:1px 4px; border-radius:3px;">Ctrl</kbd> キーを押しながらドラッグで枠移动',
+        secElevationSmooth: "2. 標高と平滑化パラメータ",
+        lblWaterLevel: "海水面カットオフ",
+        lblMaxElevation: "最高標高",
+        lblSmoothLevel: "地形平滑化レベル",
+        lblRaiseBelowSea: "海水面以下のピクセルを嵩上げ",
+        lblRaiseLowPixels: "低標高ピクセルを嵩上げ",
+        lblRaiseBelowVal: "目標の標高:",
+        lblRaiseLowVal: "低標高の目標相対標高:",
+        lblLakeDetection: "湖沼の検出",
+        btnGenerateHeightmap: "ハイトマップを生成",
+        secTownExport: "3. エクスポートとパッケージ",
+        lblJsonFormat: "JSON 出力フォーマット",
+        optRoadTycoon: "OpenTTD 仕様 (比率座標、X/Y入替、city)",
+        optStandard: "標準 GS (タイル整数座標 x, y, population)",
+        optMinimal: "最小比率モード (x, y, name)",
+        lblPopScale: "人口スケール比率",
+        lblTownThreshold: "街のフィルタリングしきい値",
+        btnExportTowns: "街のJSONをエクスポート",
+        btnPackZip: "📦 すべてをZIPにパッケージ (ハイトマップ + 街)",
+        secPreviewTitle: "ハイトマッププレビュー",
+        btnDownloadPng: "ハイトマップ PNG をダウンロード",
+        fetchingTowns: "街データを取得中...",
+        errFetchHeightmap: "地形データの取得に失敗しました。ネットワーク接続を確認してください。",
+        errFetchTowns: "街ノードの取得に失敗しました。後ほど再試行してください。",
+        errParseTowns: "街データの解析エラーが発生しました。",
+        packingZip: "ZIP にパッケージ中..."
+      }
+    };
+
+    // --- Parameter Tooltip Documentation Database ---
+    const paramDescriptions = {
+      dimensions: {
+        en: { title: "Map Dimensions (Tile)", desc: "Defines the exact OpenTTD map tile dimensions (e.g. 512x512). Must be powers of 2 conforming to OpenTTD official map size limits." },
+        zh: { title: "地图尺寸 (Tile 瓦片)", desc: "定义 OpenTTD 地图的精确瓦片尺寸（如 512x512）。尺寸必须符合 OpenTTD 官方地图大小规范。" },
+        ja: { title: "マップサイズ (タイル)", desc: "OpenTTDのマップタイルサイズ（例：512x512）を定義します。OpenTTDの公式マップサイズの制限に準拠します。" }
+      },
+      waterLevel: {
+        en: { title: "Sea Level Cutoff", desc: "Cuts off elevations below this threshold, setting them to sea level (0m) to form realistic coastlines and water bodies." },
+        zh: { title: "海平面裁切", desc: "裁切低于该阈值的高程，将其设为海平面（0米），用于生成符合 OpenTTD 标准的海岸线与水体。" },
+        ja: { title: "海水面カットオフ", desc: "この閾値未満の標高をカットし、海抜（0m）に設定してリアルな海岸線や水域を形成します。" }
+      },
+      maxElevation: {
+        en: { title: "Max Elevation", desc: "Maps the highest terrain elevation point to OpenTTD's maximum height scale (supports up to 256 height levels)." },
+        zh: { title: "最高海拔", desc: "将最高地形高程点映射到 OpenTTD 的最大高度比例尺中（支持最高 256 级高度）。" },
+        ja: { title: "最高標高", desc: "最高地形標高点をOpenTTDの最大高さスケール（最大256段階の高さ）にマッピングします。" }
+      },
+      smoothLevel: {
+        en: { title: "Terrain Smooth Level", desc: "Applies multi-pass box filtering to smooth out steep mountain cliffs, making terrain suitable for road/railway networks." },
+        zh: { title: "地形平滑等级", desc: "应用多通道盒式滤波消除陡峭山崖，使地形更加平缓，适合铺设公路与铁轨网。" },
+        ja: { title: "地形平滑化レベル", desc: "マルチパスボックスフィルターを適用して急な崖を滑らかにし、道路や鉄道網に適した地形にします。" }
+      },
+      raiseBelowSea: {
+        en: { title: "Raising Sea-Level Pixels", desc: "Forces pixels at or below sea level to elevate to a target minimum height, preventing unwanted deep ocean holes." },
+        zh: { title: "强制抬升海平面及以下像素", desc: "将海平面及以下的像素强制抬升至指定目标高度，防止生成不希望出现的深海巨坑。" },
+        ja: { title: "海水面以下のピクセル嵩上げ", desc: "海水面以下またはその上のピクセルを強制的に指定の目標標高まで嵩上げし、予期せぬ深海を防止します。" }
+      },
+      raiseLowPixels: {
+        en: { title: "Raising Low Pixels", desc: "Elevates low-lying land areas slightly above sea level to ensure proper elevation gradients for vehicle pathfinding." },
+        zh: { title: "强制抬升低海拔陆地区域", desc: "将略高于海平面的低海拔陆地适当抬升，确保交通网络寻路时具备合适的高程梯度。" },
+        ja: { title: "低標高ピクセルの嵩上げ", desc: "海抜直上の低地をわずかに嵩上げし、経路探索に適した適切な勾配を確保します。" }
+      },
+      lakeDetection: {
+        en: { title: "Lake Detection", desc: "Identifies enclosed inland depressions below sea level and fills them to prevent unnatural dry basins." },
+        zh: { title: "内陆湖泊识别与填平", desc: "识别封闭的低于海平面的内陆洼地并进行平整填补，防止出现不自然的干涸盆地。" },
+        ja: { title: "湖沼の検出", desc: "海水面下の閉じた内陸の凹みを検出し、不自然な乾燥盆地を防ぐために埋め立てます。" }
+      },
+      jsonFormat: {
+        en: { title: "OpenTTD Export Format", desc: "Exports town data following OpenTTD official specifications (normalized ratio coordinates, X/Y axis swap, city boolean flag)." },
+        zh: { title: "OpenTTD 导出规范格式", desc: "遵循 OpenTTD 官方规范导出城镇数据（比例坐标、x/y 对调、city 城市布尔属性标记）。" },
+        ja: { title: "OpenTTD 出力フォーマット", desc: "OpenTTD公式仕様（比率座標、X/Y入替、cityフラグ）に従って街データをエクスポートします。" }
+      },
+      popScale: {
+        en: { title: "Population Scale Ratio", desc: "Scales real-world OSM town populations down to fit OpenTTD's economic and game balancing requirements." },
+        zh: { title: "人口缩放比例", desc: "将现实世界 OSM 城镇人口按比例缩小，以适配 OpenTTD 的经济平衡与游戏需求。" },
+        ja: { title: "人口スケール比率", desc: "現実世界のOSM都市人口を縮小し、OpenTTDの経済バランスやゲーム要件に適合させます。" }
+      },
+      townThreshold: {
+        en: { title: "Town Filter Threshold", desc: "Filters towns based on OSM place hierarchy rank (cities, towns, villages) to control total map node density." },
+        zh: { title: "城镇筛选门槛", desc: "根据 OSM 地点层级排名（城市、镇、村庄）进行过滤，以控制地图上的城镇节点密度。" },
+        ja: { title: "街のフィルタリングしきい値", desc: "OSMの場所階級ランク（都市、町、村）に基づいて街をフィルタリングし、マップ全体の密度を制御します。" }
+      }
+    };
+
+    let currentLang = 'en';
+
+    function setLanguage(lang) {
+      currentLang = lang;
+      document.documentElement.lang = lang;
+      const t = i18n[lang];
+
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (t[key]) {
+          el.innerHTML = t[key];
+        }
+      });
+
+      document.getElementById('btn-reset').title = t.resetTitle;
+      document.getElementById('btn-theme-toggle').title = t.themeToggleTitle;
+      const themeTextEl = document.querySelector('[data-i18n="themeText"]');
+      if (themeTextEl) {
+        themeTextEl.textContent = isNightMode ? t.themeText : t.themeTextLight;
+      }
+    }
+
+    document.getElementById('lang-select').addEventListener('change', (e) => {
+      setLanguage(e.target.value);
+    });
+
+    // --- One-Click Reset / Initialization Event Listener ---
+    document.getElementById('btn-reset').addEventListener('click', () => {
+      const defaults = {
+        'map-width': '512',
+        'map-height': '512',
+        'water-level': '0',
+        'max-elevation': '2000',
+        'smooth-level': '2',
+        'raise-below-val': '1',
+        'raise-low-val': '20',
+        'pop-scale': '0.05',
+        'town-threshold': '0.5',
+        'json-format': 'roadtycoon'
+      };
+
+      for (const [id, value] of Object.entries(defaults)) {
+        const el = document.getElementById(id);
+        if (el) {
+          el.value = value;
+          el.dispatchEvent(new Event('input'));
+          el.dispatchEvent(new Event('change'));
+        }
+      }
+
+      const checkboxes = {
+        'raise-below-sea': false,
+        'raise-low-pixels': false,
+        'lake-detection': true
+      };
+
+      for (const [id, checked] of Object.entries(checkboxes)) {
+        const el = document.getElementById(id);
+        if (el) {
+          el.checked = checked;
+          el.dispatchEvent(new Event('change'));
+        }
+      }
+    });
+
+    // --- Hover Tooltip Interaction Logic ---
+    const tooltipCard = document.getElementById('param-tooltip');
+    const tooltipTitle = document.getElementById('tooltip-title');
+    const tooltipDesc = document.getElementById('tooltip-desc');
+
+    document.querySelectorAll('[data-param-key]').forEach(el => {
+      el.addEventListener('mouseenter', () => {
+        const key = el.getAttribute('data-param-key');
+        const info = paramDescriptions[key]?.[currentLang] || paramDescriptions[key]?.en;
+        if (info) {
+          tooltipTitle.textContent = info.title;
+          tooltipDesc.textContent = info.desc;
+          tooltipCard.style.display = 'block';
+        }
+      });
+      el.addEventListener('mouseleave', () => {
+        tooltipCard.style.display = 'none';
+      });
+    });
+
+    // --- 2. Control Panel Dragging Mechanism ---
+    const win = document.getElementById('floating-window');
+    const header = document.getElementById('window-header');
+    let isWindowDragging = false, startX, startY, initialX = 0, initialY = 0;
+
+    const dragTrigger = document.querySelector('.window-handle');
+    [header, dragTrigger].forEach(elem => {
+      elem.addEventListener('mousedown', (e) => {
+        if (e.target.tagName === 'BUTTON' || e.target.tagName === 'SELECT' || e.target.closest('button')) return;
+        isWindowDragging = true;
+        startX = e.clientX - initialX;
+        startY = e.clientY - initialY;
+      });
+    });
+
+    document.addEventListener('mousemove', (e) => {
+      if (!isWindowDragging) return;
+      e.preventDefault();
+      initialX = e.clientX - startX;
+      initialY = e.clientY - startY;
+      win.style.transform = `translate3d(${initialX}px, ${initialY}px, 0)`;
+    });
+
+    document.addEventListener('mouseup', () => { isWindowDragging = false; });
+
+    // --- 3. Day/Night Mode & Map Initialization (Default to Day Mode) ---
+    let isNightMode = false; // 默认设为白天模式
+    const btnThemeToggle = document.getElementById('btn-theme-toggle');
+
+    const darkTile = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 19 });
+    const lightTile = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 });
+
+    const map = L.map('map', { zoomControl: false }).setView([35.3, 136.2], 9);
+    lightTile.addTo(map); // 默认加载亮色底图
+
+    btnThemeToggle.addEventListener('click', () => {
+      isNightMode = !isNightMode;
+      const t = i18n[currentLang];
+      const themeIconEl = document.getElementById('theme-icon');
+      const themeTextEl = document.querySelector('[data-i18n="themeText"]');
+
+      if (isNightMode) {
+        document.documentElement.classList.remove('theme-day');
+        themeIconEl.textContent = '🌙';
+        if (themeTextEl) themeTextEl.textContent = t.themeText;
+        map.removeLayer(lightTile);
+        map.addLayer(darkTile);
+      } else {
+        document.documentElement.classList.add('theme-day');
+        themeIconEl.textContent = '☀️';
+        if (themeTextEl) themeTextEl.textContent = t.themeTextLight;
+        map.removeLayer(darkTile);
+        map.addLayer(lightTile);
+      }
+    });
+
+    // --- 4. Fixed Ratio Selection & Ctrl-Key Drag Moving Mechanism ---
+    const drawnItems = new L.FeatureGroup().addTo(map);
+    let selectedBounds = null;
+    let selectedRectangle = null;
+    let isDrawingBox = false;
+    let drawStartLatLng = null;
+    let tempBox = null;
+    let isCtrlPressed = false;
+
+    const btnDraw = document.getElementById('btn-draw');
+    const btnClear = document.getElementById('btn-clear');
+    const dragTip = document.getElementById('drag-tip');
+
+    function updateBoxInteractivity() {
+      if (!selectedRectangle) return;
+      const el = selectedRectangle.getElement();
+      if (!el) return;
+      if (isCtrlPressed) {
+        el.style.pointerEvents = 'auto';
+        el.style.cursor = 'move';
+      } else {
+        el.style.pointerEvents = 'none';
+        el.style.cursor = '';
+      }
+    }
+
+    window.addEventListener('keydown', (e) => {
+      if ((e.key === 'Control' || e.ctrlKey) && !isCtrlPressed) {
+        isCtrlPressed = true;
+        updateBoxInteractivity();
+      }
+    });
+
+    window.addEventListener('keyup', (e) => {
+      if (e.key === 'Control' || !e.ctrlKey) {
+        isCtrlPressed = false;
+        updateBoxInteractivity();
+      }
+    });
+
+    window.addEventListener('blur', () => {
+      isCtrlPressed = false;
+      updateBoxInteractivity();
+    });
+
+    btnDraw.addEventListener('click', () => {
+      isDrawingBox = true;
+      map.getContainer().style.cursor = 'crosshair';
+      map.dragging.disable();
+    });
+
+    function makeRectangleDraggable(rect) {
+      rect.setStyle({ interactive: true });
+      setTimeout(updateBoxInteractivity, 50);
+
+      rect.on('mousedown', (e) => {
+        if (isDrawingBox) return;
+        if (!e.originalEvent.ctrlKey && e.originalEvent.key !== 'Control') return;
+
+        L.DomEvent.stopPropagation(e);
+        L.DomEvent.preventDefault(e);
+
+        map.dragging.disable();
+
+        const startPoint = map.mouseEventToContainerPoint(e.originalEvent);
+        const bounds = rect.getBounds();
+        const startSW = map.latLngToContainerPoint(bounds.getSouthWest());
+        const startNE = map.latLngToContainerPoint(bounds.getNorthEast());
+
+        const onMouseMove = (evt) => {
+          const currentPoint = map.mouseEventToContainerPoint(evt);
+          const dx = currentPoint.x - startPoint.x;
+          const dy = currentPoint.y - startPoint.y;
+
+          const newSWPoint = L.point(startSW.x + dx, startSW.y + dy);
+          const newNEPoint = L.point(startNE.x + dx, startNE.y + dy);
+
+          const newSW = map.containerPointToLatLng(newSWPoint);
+          const newNE = map.containerPointToLatLng(newNEPoint);
+
+          rect.setBounds(L.latLngBounds(newSW, newNE));
+          selectedBounds = rect.getBounds();
+        };
+
+        const onMouseUp = () => {
+          map.dragging.enable();
+          document.removeEventListener('mousemove', onMouseMove);
+          document.removeEventListener('mouseup', onMouseUp);
+        };
+
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mouseup', onMouseUp);
+      });
+    }
+
+    map.on('mousedown', (e) => {
+      if (!isDrawingBox) return;
+      drawStartLatLng = e.latlng;
+      if (tempBox) map.removeLayer(tempBox);
+      tempBox = L.rectangle([drawStartLatLng, drawStartLatLng], {
+        color: '#0A84FF', weight: 2, fillOpacity: 0.2, interactive: false
+      }).addTo(map);
+    });
+
+    map.on('mousemove', (e) => {
+      if (!isDrawingBox || !drawStartLatLng) return;
+
+      const startPoint = map.latLngToContainerPoint(drawStartLatLng);
+      const currPoint = map.latLngToContainerPoint(e.latlng);
+
+      const wVal = parseInt(document.getElementById('map-width').value);
+      const hVal = parseInt(document.getElementById('map-height').value);
+      const targetRatio = wVal / hVal;
+
+      let dx = currPoint.x - startPoint.x;
+      let dy = currPoint.y - startPoint.y;
+
+      let absDx = Math.abs(dx);
+      let absDy = Math.abs(dy);
+      
+      let width, height;
+
+      if (absDx / targetRatio > absDy) {
+        width = absDx;
+        height = width / targetRatio;
+      } else {
+        height = absDy;
+        width = height * targetRatio;
+      }
+
+      let finalX = dx < 0 ? startPoint.x - width : startPoint.x + width;
+      let finalY = dy < 0 ? startPoint.y - height : startPoint.y + height;
+
+      const endPoint = L.point(finalX, finalY);
+      const endLatLng = map.containerPointToLatLng(endPoint);
+
+      tempBox.setBounds(L.latLngBounds(drawStartLatLng, endLatLng));
+    });
+
+    map.on('mouseup', (e) => {
+      if (!isDrawingBox || !drawStartLatLng) return;
+      
+      const startPoint = map.latLngToContainerPoint(drawStartLatLng);
+      const endPoint = map.latLngToContainerPoint(e.latlng);
+      const distance = Math.sqrt(Math.pow(endPoint.x - startPoint.x, 2) + Math.pow(endPoint.y - startPoint.y, 2));
+
+      if (distance < 10) {
+        if (tempBox) map.removeLayer(tempBox);
+        tempBox = null;
+        drawStartLatLng = null;
+        return; 
+      }
+
+      isDrawingBox = false;
+      map.getContainer().style.cursor = '';
+      map.dragging.enable();
+
+      drawnItems.clearLayers();
+      if (tempBox) {
+        drawnItems.addLayer(tempBox);
+        selectedRectangle = tempBox;
+        selectedBounds = tempBox.getBounds();
+        makeRectangleDraggable(selectedRectangle);
+        tempBox = null;
+      }
+      drawStartLatLng = null;
+
+      document.getElementById('btn-generate-heightmap').disabled = false;
+      document.getElementById('btn-export-towns').disabled = false;
+      btnDraw.style.display = 'none';
+      btnClear.style.display = 'inline-flex';
+      dragTip.style.display = 'flex';
+    });
+
+    btnClear.addEventListener('click', () => {
+      drawnItems.clearLayers();
+      selectedBounds = null;
+      selectedRectangle = null;
+      cachedPNGBlob = null;
+      cachedJSONString = null;
+
+      document.getElementById('btn-generate-heightmap').disabled = true;
+      document.getElementById('btn-export-towns').disabled = true;
+      document.getElementById('btn-pack-zip').disabled = true;
+      document.getElementById('preview-container').style.display = 'none';
+      btnDraw.style.display = 'inline-flex';
+      btnClear.style.display = 'none';
+      dragTip.style.display = 'none';
+    });
+
+    // --- 5. UI Range Sliders Display Binding ---
+    const bindSlider = (id, targetId, unit = '') => {
+      document.getElementById(id).addEventListener('input', (e) => {
+        document.getElementById(targetId).textContent = e.target.value + unit;
+      });
+    };
+    bindSlider('water-level', 'val-water', 'm');
+    bindSlider('max-elevation', 'val-elevation', 'm');
+    bindSlider('smooth-level', 'val-smooth', 'x');
+    bindSlider('raise-below-val', 'val-raise-below', 'm');
+    bindSlider('raise-low-val', 'val-raise-low', 'm');
+    bindSlider('pop-scale', 'val-scale');
+    bindSlider('town-threshold', 'val-threshold');
+
+    // --- 6. DEM Elevation Calculation & Custom Lake/Elevation Algorithms ---
+    function lon2tile(lon, z) { return Math.floor((lon + 180) / 360 * Math.pow(2, z)); }
+    function lat2tile(lat, z) {
+      return Math.floor((1 - Math.log(Math.tan(lat * Math.PI / 180) + 1 / Math.cos(lat * Math.PI / 180)) / Math.PI) / 2 * Math.pow(2, z));
+    }
+    function tile2lon(x, z) { return x / Math.pow(2, z) * 360 - 180; }
+    function tile2lat(y, z) {
+      const n = Math.PI - 2 * Math.PI * y / Math.pow(2, z);
+      return 180 / Math.PI * Math.atan(0.5 * (Math.exp(n) - Math.exp(-n)));
+    }
+
+    async function loadTerrariumTile(z, x, y) {
+      const url = `https://elevation-tiles-prod.s3.amazonaws.com/terrarium/${z}/${x}/${y}.png`;
+      const res = await fetch(url, { mode: 'cors' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return await createImageBitmap(await res.blob());
+    }
+
+    function decodeElevation(r, g, b) { return (r * 256 + g + b / 256) - 32768; }
+
+    function getBilinearElevation(imageData, width, height, fx, fy) {
+      const x1 = Math.floor(fx), y1 = Math.floor(fy);
+      const x2 = Math.min(x1 + 1, width - 1), y2 = Math.min(y1 + 1, height - 1);
+      const dx = fx - x1, dy = fy - y1;
+
+      const getElev = (x, y) => {
+        const idx = (y * width + x) * 4;
+        return decodeElevation(imageData[idx], imageData[idx + 1], imageData[idx + 2]);
+      };
+
+      const e11 = getElev(x1, y1), e21 = getElev(x2, y1);
+      const e12 = getElev(x1, y2), e22 = getElev(x2, y2);
+      return e11 + dx * (e21 - e11) + dy * (e12 - e12) + dx * dy * (e11 - e21 - e12 + e22);
+    }
+
+    function processLakeDetection(heightGrid, width, height, seaLevel) {
+      const visited = new Uint8Array(width * height);
+      const dx = [1, -1, 0, 0];
+      const dy = [0, 0, 1, -1];
+
+      for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+          const idx = y * width + x;
+          if (visited[idx] || heightGrid[idx] > seaLevel) continue;
+
+          const component = [];
+          const queue = [idx];
+          visited[idx] = 1;
+          let touchesBorder = false;
+
+          let head = 0;
+          while (head < queue.length) {
+            const curr = queue[head++];
+            component.push(curr);
+
+            const cx = curr % width;
+            const cy = Math.floor(curr / width);
+
+            if (cx === 0 || cx === width - 1 || cy === 0 || cy === height - 1) {
+              touchesBorder = true;
+            }
+
+            for (let d = 0; d < 4; d++) {
+              const nx = cx + dx[d];
+              const ny = cy + dy[d];
+              if (nx >= 0 && nx < width && ny >= 0 && ny < height) {
+                const nIdx = ny * width + nx;
+                if (!visited[nIdx] && heightGrid[nIdx] <= seaLevel) {
+                  visited[nIdx] = 1;
+                  queue.push(nIdx);
+                }
+              }
+            }
+          }
+
+          if (!touchesBorder) {
+            for (let i = 0; i < component.length; i++) {
+              heightGrid[component[i]] = seaLevel;
+            }
+          }
+        }
+      }
+    }
+
+    document.getElementById('btn-generate-heightmap').addEventListener('click', async () => {
+      if (!selectedBounds) return;
+
+      const mapW = parseInt(document.getElementById('map-width').value);
+      const mapH = parseInt(document.getElementById('map-height').value);
+      cachedMapWidth = mapW;
+      cachedMapHeight = mapH;
+
+      const canvas = document.getElementById('heightmap-canvas');
+      document.getElementById('preview-container').style.display = 'flex';
+      
+      canvas.width = mapW;
+      canvas.height = mapH;
+      const ctx = canvas.getContext('2d');
+
+      const waterLevel = parseFloat(document.getElementById('water-level').value);
+      const maxElev = parseFloat(document.getElementById('max-elevation').value);
+      const smoothPasses = parseInt(document.getElementById('smooth-level').value);
+
+      const doRaiseBelowSea = document.getElementById('raise-below-sea').checked;
+      const raiseBelowVal = parseFloat(document.getElementById('raise-below-val').value);
+
+      const doRaiseLow = document.getElementById('raise-low-pixels').checked;
+      const raiseLowVal = parseFloat(document.getElementById('raise-low-val').value);
+
+      const doLakeDetection = document.getElementById('lake-detection').checked;
+
+      const north = selectedBounds.getNorth(), south = selectedBounds.getSouth();
+      const east = selectedBounds.getEast(), west = selectedBounds.getWest();
+
+      const lngRange = Math.abs(east - west);
+      const targetZoom = Math.min(Math.max(4, Math.floor(Math.log2(360 / lngRange)) + 2), 12);
+
+      const minTileX = lon2tile(west, targetZoom), maxTileX = lon2tile(east, targetZoom);
+      const minTileY = lat2tile(north, targetZoom), maxTileY = lat2tile(south, targetZoom);
+
+      const numTilesX = maxTileX - minTileX + 1;
+      const numTilesY = maxTileY - minTileY + 1;
+
+      const offCanvas = document.createElement('canvas');
+      offCanvas.width = numTilesX * 256;
+      offCanvas.height = numTilesY * 256;
+      const offCtx = offCanvas.getContext('2d');
+
+      try {
+        for (let tx = minTileX; tx <= maxTileX; tx++) {
+          for (let ty = minTileY; ty <= maxTileY; ty++) {
+            const bitmap = await loadTerrariumTile(targetZoom, tx, ty);
+            offCtx.drawImage(bitmap, (tx - minTileX) * 256, (ty - minTileY) * 256);
+          }
+        }
+
+        const offImageData = offCtx.getImageData(0, 0, offCanvas.width, offCanvas.height).data;
+        const offWest = tile2lon(minTileX, targetZoom), offNorth = tile2lat(minTileY, targetZoom);
+        const offEast = tile2lon(maxTileX + 1, targetZoom), offSouth = tile2lat(maxTileY + 1, targetZoom);
+
+        let heightGrid = new Float32Array(mapW * mapH);
+        for (let y = 0; y < mapH; y++) {
+          for (let x = 0; x < mapW; x++) {
+            const lat = north - (y / mapH) * (north - south);
+            const lon = west + (x / mapW) * (east - west);
+
+            const rawOffX = (lon - offWest) / (offEast - offWest) * offCanvas.width;
+            const rawOffY = (offNorth - lat) / (offNorth - offSouth) * offCanvas.height;
+
+            heightGrid[y * mapW + x] = getBilinearElevation(
+              offImageData, offCanvas.width, offCanvas.height,
+              Math.min(Math.max(0, rawOffX), offCanvas.width - 1),
+              Math.min(Math.max(0, rawOffY), offCanvas.height - 1)
+            );
+          }
+        }
+
+        for (let pass = 0; pass < smoothPasses; pass++) {
+          const smoothed = new Float32Array(mapW * mapH);
+          for (let y = 0; y < mapH; y++) {
+            for (let x = 0; x < mapW; x++) {
+              let sum = 0, count = 0;
+              for (let dy = -1; dy <= 1; dy++) {
+                for (let dx = -1; dx <= 1; dx++) {
+                  const ny = y + dy, nx = x + dx;
+                  if (ny >= 0 && ny < mapH && nx >= 0 && nx < mapW) {
+                    sum += heightGrid[ny * mapW + nx];
+                    count++;
+                  }
+                }
+              }
+              smoothed[y * mapW + x] = sum / count;
+            }
+          }
+          heightGrid = smoothed;
+        }
+
+        if (doLakeDetection) {
+          processLakeDetection(heightGrid, mapW, mapH, waterLevel);
+        }
+
+        for (let i = 0; i < mapW * mapH; i++) {
+          const val = heightGrid[i];
+          if (doRaiseBelowSea && val <= waterLevel) {
+            heightGrid[i] = waterLevel + raiseBelowVal; 
+          } else if (doRaiseLow && val > waterLevel && val <= waterLevel + raiseLowVal) {
+            heightGrid[i] = waterLevel + raiseLowVal; 
+          }
+        }
+
+        const finalImgData = ctx.createImageData(mapW, mapH);
+        for (let i = 0; i < mapW * mapH; i++) {
+          let normalized = (heightGrid[i] - waterLevel) / (maxElev - waterLevel);
+          normalized = Math.max(0, Math.min(1, normalized));
+          const gray = Math.round(normalized * 255);
+
+          const idx = i * 4;
+          finalImgData.data[idx] = gray;
+          finalImgData.data[idx + 1] = gray;
+          finalImgData.data[idx + 2] = gray;
+          finalImgData.data[idx + 3] = 255;
+        }
+
+        ctx.putImageData(finalImgData, 0, 0);
+        document.getElementById('btn-download-png').disabled = false;
+
+        canvas.toBlob((blob) => {
+          cachedPNGBlob = blob;
+          checkEnablePackZip();
+        }, 'image/png');
+
+      } catch (err) {
+        console.error(err);
+        alert(i18n[currentLang].errFetchHeightmap);
+      }
+    });
+
+    document.getElementById('btn-download-png').addEventListener('click', () => {
+      const canvas = document.getElementById('heightmap-canvas');
+      const link = document.createElement('a');
+      link.download = `openttd_heightmap_${canvas.width}x${canvas.height}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    });
+
+    // --- 7. Town JSON Export ---
+    document.getElementById('btn-export-towns').addEventListener('click', async () => {
+      await generateTownsData();
+      if (cachedJSONString) {
+        const blob = new Blob([cachedJSONString], { type: 'application/json' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `openttd_towns_${cachedMapWidth}x${cachedMapHeight}.json`;
+        link.click();
+      }
+    });
+
+    async function generateTownsData() {
+      if (!selectedBounds) return;
+
+      const btn = document.getElementById('btn-export-towns');
+      btn.innerText = i18n[currentLang].fetchingTowns;
+      btn.disabled = true;
+
+      const s = selectedBounds.getSouth(), w = selectedBounds.getWest();
+      const n = selectedBounds.getNorth(), e = selectedBounds.getEast();
+
+      const mapW = parseInt(document.getElementById('map-width').value);
+      const mapH = parseInt(document.getElementById('map-height').value);
+      cachedMapWidth = mapW;
+      cachedMapHeight = mapH;
+
+      const popScale = parseFloat(document.getElementById('pop-scale').value);
+      const threshold = parseFloat(document.getElementById('town-threshold').value);
+      const jsonFmt = document.getElementById('json-format').value;
+
+      const query = `[out:json][timeout:25];node["place"~"city|town|village|hamlet|suburb"](${s},${w},${n},${e});out;`;
+      const overpassEndpoints = [
+        'https://overpass-api.de/api/interpreter',
+        'https://overpass.kumi.ai/api/interpreter',
+        'https://maps.mail.ru/osm/tools/overpass/api/interpreter'
+      ];
+
+      let data = null;
+      for (const endpoint of overpassEndpoints) {
+        try {
+          const res = await fetch(`${endpoint}?data=${encodeURIComponent(query)}`);
+          if (res.ok) { data = await res.json(); break; }
+        } catch (err) { console.warn(`Switching Overpass mirror...`); }
+      }
+
+      if (!data) {
+        alert(i18n[currentLang].errFetchTowns);
+        btn.innerText = i18n[currentLang].btnExportTowns;
+        btn.disabled = false;
+        return;
+      }
+
+      try {
+        const placeRank = { 'national_capital': 5, 'city': 4, 'town': 3, 'suburb': 2, 'village': 1, 'hamlet': 0 };
+        let townsList = [];
+
+        data.elements.forEach(node => {
+          const tags = node.tags || {};
+          let placeType = tags.place || 'village';
+          if (tags.capital === 'yes') placeType = 'national_capital';
+
+          const rank = placeRank[placeType] ?? 1;
+          if (rank < (1 - threshold) * 5) return;
+
+          const nativeName = tags.name || tags['name:en'] || tags['name:zh'] || "Town";
+
+          let ratioX_img = (node.lon - w) / (e - w);
+          let ratioY_img = (n - node.lat) / (n - s);
+
+          ratioX_img = Math.min(Math.max(0, ratioX_img), 1);
+          ratioY_img = Math.min(Math.max(0, ratioY_img), 1);
+
+          let rawPop = parseInt(tags.population) || (rank * 5000);
+          let scaledPop = Math.max(10, Math.round(rawPop * popScale));
+
+          const isCityBool = (placeType === 'city' || placeType === 'national_capital');
+
+          if (jsonFmt === 'roadtycoon') {
+            const ottdX = ratioY_img; 
+            const ottdY = ratioX_img; 
+
+            townsList.push({
+              "name": String(nativeName).trim(),
+              "population": parseInt(scaledPop),
+              "city": Boolean(isCityBool),
+              "x": Number(ottdX.toFixed(8)),
+              "y": Number(ottdY.toFixed(8))
+            });
+          } else if (jsonFmt === 'standard') {
+            let tileX = Math.floor(ratioX_img * mapW);
+            let tileY = Math.floor(ratioY_img * mapH);
+            tileX = Math.min(Math.max(0, tileX), mapW - 1);
+            tileY = Math.min(Math.max(0, tileY), mapH - 1);
+
+            townsList.push({
+              "name": String(nativeName).trim(),
+              "x": parseInt(tileX),
+              "y": parseInt(tileY),
+              "population": parseInt(scaledPop)
+            });
+          } else {
+            const ottdX = ratioY_img;
+            const ottdY = ratioX_img;
+
+            townsList.push({
+              "name": String(nativeName).trim(),
+              "x": Number(ottdX.toFixed(8)),
+              "y": Number(ottdY.toFixed(8))
+            });
+          }
+        });
+
+        cachedJSONString = JSON.stringify(townsList, null, 2);
+        checkEnablePackZip();
+
+      } catch (err) {
+        alert(i18n[currentLang].errParseTowns);
+        console.error(err);
+      } finally {
+        btn.innerText = i18n[currentLang].btnExportTowns;
+        btn.disabled = false;
+      }
+    }
+
+    function checkEnablePackZip() {
+      if (cachedPNGBlob || cachedJSONString) {
+        document.getElementById('btn-pack-zip').disabled = false;
+      }
+    }
+
+    // --- 8. ZIP One-Click Packaging ---
+    document.getElementById('btn-pack-zip').addEventListener('click', async () => {
+      const btnPack = document.getElementById('btn-pack-zip');
+      const oldText = btnPack.innerText;
+      btnPack.innerText = i18n[currentLang].packingZip;
+      btnPack.disabled = true;
+
+      try {
+        if (!cachedPNGBlob) {
+          const canvas = document.getElementById('heightmap-canvas');
+          if (canvas.width > 0) {
+            await new Promise(resolve => canvas.toBlob(b => { cachedPNGBlob = b; resolve(); }, 'image/png'));
+          }
+        }
+
+        if (!cachedJSONString && selectedBounds) {
+          await generateTownsData();
+        }
+
+        const zip = new JSZip();
+        const mapW = cachedMapWidth;
+        const mapH = cachedMapHeight;
+
+        if (cachedPNGBlob) {
+          zip.file(`heightmap_${mapW}x${mapH}.png`, cachedPNGBlob);
+        }
+
+        if (cachedJSONString) {
+          zip.file(`towns_${mapW}x${mapH}.json`, cachedJSONString);
+        }
+
+        const content = await zip.generateAsync({ type: 'blob' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(content);
+        link.download = `openttd_studio_pack_${mapW}x${mapH}.zip`;
+        link.click();
+
+      } catch (err) {
+        console.error(err);
+        alert('ZIP packaging failed!');
+      } finally {
+        btnPack.innerText = oldText;
+        btnPack.disabled = false;
+      }
+    });
+
+    // Initialize Default Language
+    setLanguage('en');
+  </script>
+</body>
+</html>
