@@ -462,11 +462,11 @@
       object-fit: contain;
     }
 
-    /* 选框与 UI 交互样式增强 */
+    /* Selection box and UI interaction style enhancements */
     .selection-polygon { outline: none; transition: fill-opacity 0.2s; }
     body.ctrl-pressed .selection-polygon { cursor: move !important; fill-opacity: 0.25; }
 
-    /* 旋转与缩放手柄图标优化 */
+    /* Rotation and scaling handle icon optimizations */
     .rotate-handle-icon div {
       width: 22px; height: 22px; background: var(--bg-surface);
       border: 2px solid #FF3B30; border-radius: 50%;
@@ -937,7 +937,7 @@
         this.polygon = L.polygon([], { color: '#0A84FF', weight: 2, fillOpacity: 0.15, interactive: true, className: 'selection-polygon' });
         this.polygon.addTo(drawnItems);
 
-        // 缩放控制点带图标 (⤢)
+        // Scale handle icon (⤢)
         const resizeIcon = L.divIcon({
           className: 'resize-handle-icon',
           html: '<div title="Scale">⤢</div>', iconSize: [18, 18], iconAnchor: [9, 9]
@@ -949,7 +949,7 @@
           this.handles.push(hnd);
         }
 
-        // 旋转控制点带图标 (↻)
+        // Rotation handle icon (↻)
         const rotateIcon = L.divIcon({
           className: 'rotate-handle-icon',
           html: '<div title="Rotate">↻</div>', iconSize: [22, 22], iconAnchor: [11, 11]
@@ -1401,7 +1401,7 @@
         const pop = el.tags.population ? parseInt(el.tags.population) : (rank * 100000);
         const scaledPop = Math.max(1, Math.floor(pop * popScale));
         
-        // 使用当地语言名称优先
+        // Prefer the local language name when available
         const name = el.tags.name || el.tags['name:en'] || 'Unknown';
 
         const m = latLngToMerc({lat: el.lat, lng: el.lon});
@@ -1409,17 +1409,17 @@
         const lx = dx * cosInv - dy * sinInv, ly = dx * sinInv + dy * cosInv;
 
         if (Math.abs(lx) <= activeSel.w / 2 && Math.abs(ly) <= activeSel.h / 2) {
-          const nx = (lx / activeSel.w) + 0.5; // 高度图横向（东西）
-          const ny = (ly / activeSel.h) + 0.5; // 高度图纵向（南北）
+          const nx = (lx / activeSel.w) + 0.5; // Heightmap horizontal axis (east-west)
+          const ny = (ly / activeSel.h) + 0.5; // Heightmap vertical axis (north-south)
 
-          // 保留6位小数，避免长浮点溢出
+          // Keep 6 decimal places to avoid long floating-point overflow
           const openTTDX = parseFloat(ny.toFixed(6));
           const openTTDY = parseFloat(nx.toFixed(6));
 
           let townObj = {};
           if (jsonFmt === 'roadtycoon') {
-            // 对齐 OpenTTD 官方城镇导入规范：
-            // OpenTTD 地图 X 轴对应高度图纵向 (ny)，Y 轴对应高度图横向 (nx)
+            // Align with the OpenTTD official town import specification:
+            // In OpenTTD, the map X axis corresponds to the heightmap vertical axis (ny), and the Y axis corresponds to the horizontal axis (nx)
             townObj = {
               name: name,
               population: scaledPop,
