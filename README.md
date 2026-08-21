@@ -116,6 +116,6 @@ $$\text{In-Game Population} = \text{Real OSM Population} \times \text{Population
 
 *  Filters out small settlements or low-priority nodes based on population size or administrative rank to prevent map clutter.
 * **Threshold Values (`0`, `0.5`, `1`)**:
-* **Set to `1` (Keep All)**: Retains 100% of OSM nodes in the selection (including small villages, tiny hamlets, and farmsteads).
+* **Set to `0` (Keep All)**: Retains 100% of OSM nodes in the selection (including small villages, tiny hamlets, and farmsteads).
 * **Set to `0.5` (Balanced Clean-up)**: Automatically purges minor hamlets, keeping medium-to-large towns and main cities intact.
-* **Set to `0` ( Major Cities Only)**: Strips away almost all minor towns to keep only top-tier urban centers.
+* **Set to `1` ( Major Cities Only)**: Strips away almost all minor towns to keep only top-tier urban centers.
